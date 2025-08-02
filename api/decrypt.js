@@ -9,18 +9,16 @@ export default async function handler(req, res) {
   try {
     const { url, mediaKey, mimetype, fileLength, directPath } = req.body;
 
-    // LOG DEBUG (sementara aktifkan ini kalau butuh lihat detail)
-    console.log("Decrypt request body:", req.body);
+    if (!url || !mediaKey || !mimetype || !fileLength || !directPath) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-    const mediaBuffer = (await axios.get(url, { responseType: "arraybuffer" }))
-      .data;
-
-    const decrypted = await downloadMediaMessage(
+    const decryptedBuffer = await downloadMediaMessage(
       {
         key: {
-          remoteJid: "dummy@dummy", // placeholder, nggak berpengaruh
+          remoteJid: "dummy@g.us",
           fromMe: false,
-          id: "dummy",
+          id: "msgid",
         },
         message: {
           imageMessage: {
@@ -31,22 +29,24 @@ export default async function handler(req, res) {
             fileSha256: Buffer.alloc(32),
             mediaKeyTimestamp: 0,
             directPath,
-            fileLength: fileLength, // harus string
+            fileLength: fileLength.toString(),
           },
         },
       },
-      {}, // baileys client (kosong karena kita cuma pakai tool decrypt-nya)
+      {},
       { reuploadRequest: async () => null }
     );
 
-    const ext = mimetype?.split("/")[1] || "bin";
-    const fileName = `whatsapp-media.${ext}`;
+    const extension = mimetype.split("/")[1] || "bin";
+    const fileName = `media-${Date.now()}.${extension}`;
 
     res.setHeader("Content-Type", mimetype);
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    return res.status(200).end(decrypted);
-  } catch (err) {
-    console.error("❌ Failed to decrypt:", err);
-    return res.status(500).json({ error: "Failed to decrypt" });
+    res.status(200).end(decryptedBuffer);
+  } catch (error) {
+    console.error("❌ Decrypt failed:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to decrypt", message: error.message });
   }
 }
