@@ -7,15 +7,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url, mediaKey, mimetype, directPath, fileLength } = req.body;
+    const { url, mediaKey, mimetype, fileLength, directPath } = req.body;
 
-    const encrypted = (await axios.get(url, { responseType: "arraybuffer" }))
+    // LOG DEBUG (sementara aktifkan ini kalau butuh lihat detail)
+    console.log("Decrypt request body:", req.body);
+
+    const mediaBuffer = (await axios.get(url, { responseType: "arraybuffer" }))
       .data;
 
     const decrypted = await downloadMediaMessage(
       {
         key: {
-          remoteJid: "dummy@dummy",
+          remoteJid: "dummy@dummy", // placeholder, nggak berpengaruh
           fromMe: false,
           id: "dummy",
         },
@@ -27,25 +30,23 @@ export default async function handler(req, res) {
             fileEncSha256: Buffer.alloc(32),
             fileSha256: Buffer.alloc(32),
             mediaKeyTimestamp: 0,
-            directPath: directPath,
-            fileLength: fileLength.toString(),
+            directPath,
+            fileLength: fileLength.toString(), // harus string
           },
         },
       },
-      {},
+      {}, // baileys client (kosong karena kita cuma pakai tool decrypt-nya)
       { reuploadRequest: async () => null }
     );
 
-    // DYNAMIC FILE EXTENSION
     const ext = mimetype?.split("/")[1] || "bin";
     const fileName = `whatsapp-media.${ext}`;
 
-    // SET DOWNLOAD HEADERS
     res.setHeader("Content-Type", mimetype);
-    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
-    return res.status(200).end(decrypted); // gunakan .end() agar buffer dikirim langsung
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    return res.status(200).end(decrypted);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Failed to decrypt:", err);
     return res.status(500).json({ error: "Failed to decrypt" });
   }
 }
