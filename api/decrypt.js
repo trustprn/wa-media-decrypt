@@ -7,7 +7,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url, mediaKey, mimetype, fileLength, directPath } = req.body;
+    const {
+      url,
+      mediaKey,
+      mimetype,
+      fileLength,
+      directPath,
+      mediaKeyTimestamp,
+    } = req.body;
 
     // LOG DEBUG (sementara aktifkan ini kalau butuh lihat detail)
     console.log("Decrypt request body:", req.body);
@@ -29,7 +36,7 @@ export default async function handler(req, res) {
             mediaKey: Buffer.from(mediaKey, "base64"),
             fileEncSha256: Buffer.alloc(32),
             fileSha256: Buffer.alloc(32),
-            mediaKeyTimestamp: 0,
+            mediaKeyTimestamp,
             directPath,
             fileLength: Number(fileLength), // harus string
           },
