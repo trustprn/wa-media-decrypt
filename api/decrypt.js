@@ -7,25 +7,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const {
-      url,
-      mediaKey,
-      mimetype,
-      fileLength,
-      directPath,
-      mediaKeyTimestamp,
-    } = req.body;
-
-    // LOG DEBUG (sementara aktifkan ini kalau butuh lihat detail)
-    console.log("Decrypt request body:", req.body);
-
-    const mediaBuffer = (await axios.get(url, { responseType: "arraybuffer" }))
-      .data;
+    const { url, mediaKey, mimetype, directPath, fileLength } = req.body;
 
     const decrypted = await downloadMediaMessage(
       {
         key: {
-          remoteJid: "dummy@dummy", // placeholder, nggak berpengaruh
+          remoteJid: "dummy@dummy",
           fromMe: false,
           id: "dummy",
         },
@@ -36,24 +23,26 @@ export default async function handler(req, res) {
             mediaKey: Buffer.from(mediaKey, "base64"),
             fileEncSha256: Buffer.alloc(32),
             fileSha256: Buffer.alloc(32),
-            mediaKeyTimestamp: Number(mediaKeyTimestamp),
-            directPath: directPath,
-            fileLength: Number(fileLength), // harus string
+            mediaKeyTimestamp: 0,
+            directPath,
+            fileLength: Number(fileLength),
           },
         },
       },
-      {}, // baileys client (kosong karena kita cuma pakai tool decrypt-nya)
+      {},
       { reuploadRequest: async () => null }
     );
 
+    // ✅ Ambil ekstensi dari mimetype
     const ext = mimetype?.split("/")[1] || "bin";
-    const fileName = `whatsapp-media.${ext}`;
+    const filename = `whatsapp-media.${ext}`;
 
+    // ✅ Set response headers supaya browser download dengan nama file yang benar
     res.setHeader("Content-Type", mimetype);
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    return res.status(200).end(decrypted);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.status(200).send(decrypted);
   } catch (err) {
-    console.error("❌ Failed to decrypt:", err);
+    console.error("DECRYPT ERROR:", err);
     return res.status(500).json({ error: "Failed to decrypt" });
   }
 }
