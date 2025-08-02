@@ -36,8 +36,8 @@ export default async function handler(req, res) {
             mediaKey: Buffer.from(mediaKey, "base64"),
             fileEncSha256: Buffer.alloc(32),
             fileSha256: Buffer.alloc(32),
-            mediaKeyTimestamp,
-            directPath,
+            mediaKeyTimestamp: Number(mediaKeyTimestamp),
+            directPath: directPath,
             fileLength: Number(fileLength), // harus string
           },
         },
