@@ -7,7 +7,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url, mediaKey, mimetype, directPath, fileLength } = req.body;
+    const {
+      url,
+      mediaKey,
+      mimetype,
+      directPath,
+      fileLength,
+      mediaKeyTimestamp,
+    } = req.body;
 
     const decrypted = await downloadMediaMessage(
       {
@@ -23,7 +30,7 @@ export default async function handler(req, res) {
             mediaKey: Buffer.from(mediaKey, "base64"),
             fileEncSha256: Buffer.alloc(32),
             fileSha256: Buffer.alloc(32),
-            mediaKeyTimestamp: 0,
+            mediaKeyTimestamp: Number(mediaKeyTimestamp),
             directPath,
             fileLength: Number(fileLength),
           },
