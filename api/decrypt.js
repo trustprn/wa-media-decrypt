@@ -1,50 +1,42 @@
-import { downloadMediaMessage } from "@whiskeysockets/baileys";
 import axios from "axios";
-import { writeFile } from "fs/promises";
+import { downloadMediaMessage } from "@whiskeysockets/baileys";
 
 export default async function handler(req, res) {
-  const { url, mimetype, mediaKey, fileLength, directPath } = req.body;
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
 
   try {
-    const stream = await downloadMediaMessage(
+    const { url, mediaKey, mimetype, directPath, fileLength } = req.body;
+
+    const decrypted = await downloadMediaMessage(
       {
         key: {
-          remoteJid: "dummy@g.us",
-          id: "dummy",
+          remoteJid: "dummy@dummy",
           fromMe: false,
+          id: "dummy",
         },
         message: {
           imageMessage: {
             url,
             mimetype,
             mediaKey: Buffer.from(mediaKey, "base64"),
-            fileEncSha256: Buffer.alloc(32),
-            fileSha256: Buffer.alloc(32),
+            fileEncSha256: Buffer.alloc(32), // optional
+            fileSha256: Buffer.alloc(32), // optional
             mediaKeyTimestamp: 0,
-            directPath,
-            fileLength: fileLength.toString(),
+            directPath, // ✅ isi sesuai body
+            fileLength: Number(fileLength), // ✅ pastikan ini number
           },
         },
       },
-      "buffer",
-      {
-        reuploadRequest: async () => null,
-      }
+      {},
+      { reuploadRequest: async () => null }
     );
 
-    // Simpan sebagai file dinamis berdasarkan waktu
-    const extension = mimetype.split("/")[1]; // jpg, png, etc
-    const filename = `media-${Date.now()}.${extension}`;
-    await writeFile(`/tmp/${filename}`, stream);
-
     res.setHeader("Content-Type", mimetype);
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.status(200).send(stream);
-  } catch (error) {
-    console.error("Decryption error:", error);
-    res.status(500).json({
-      error: "Failed to decrypt",
-      details: error.message,
-    });
+    return res.status(200).send(decrypted);
+  } catch (err) {
+    console.error("DECRYPT ERROR:", err);
+    return res.status(500).json({ error: "Failed to decrypt" });
   }
 }
