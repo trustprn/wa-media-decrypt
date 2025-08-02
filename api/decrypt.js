@@ -1,24 +1,17 @@
-import axios from "axios";
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
+import axios from "axios";
+import { writeFile } from "fs/promises";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).send("Method Not Allowed");
-  }
+  const { url, mimetype, mediaKey, fileLength, directPath } = req.body;
 
   try {
-    const { url, mediaKey, mimetype, fileLength, directPath } = req.body;
-
-    if (!url || !mediaKey || !mimetype || !fileLength || !directPath) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const decryptedBuffer = await downloadMediaMessage(
+    const stream = await downloadMediaMessage(
       {
         key: {
           remoteJid: "dummy@g.us",
+          id: "dummy",
           fromMe: false,
-          id: "msgid",
         },
         message: {
           imageMessage: {
@@ -33,20 +26,25 @@ export default async function handler(req, res) {
           },
         },
       },
-      {},
-      { reuploadRequest: async () => null }
+      "buffer",
+      {
+        reuploadRequest: async () => null,
+      }
     );
 
-    const extension = mimetype.split("/")[1] || "bin";
-    const fileName = `media-${Date.now()}.${extension}`;
+    // Simpan sebagai file dinamis berdasarkan waktu
+    const extension = mimetype.split("/")[1]; // jpg, png, etc
+    const filename = `media-${Date.now()}.${extension}`;
+    await writeFile(`/tmp/${filename}`, stream);
 
     res.setHeader("Content-Type", mimetype);
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    res.status(200).end(decryptedBuffer);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.status(200).send(stream);
   } catch (error) {
-    console.error("❌ Decrypt failed:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to decrypt", message: error.message });
+    console.error("Decryption error:", error);
+    res.status(500).json({
+      error: "Failed to decrypt",
+      details: error.message,
+    });
   }
 }
