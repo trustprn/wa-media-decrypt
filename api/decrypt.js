@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url, mediaKey, mimetype } = req.body;
+    const { url, mediaKey, mimetype, directPath, fileLength } = req.body;
 
     const encrypted = (await axios.get(url, { responseType: "arraybuffer" }))
       .data;
@@ -27,8 +27,8 @@ export default async function handler(req, res) {
             fileEncSha256: Buffer.alloc(32),
             fileSha256: Buffer.alloc(32),
             mediaKeyTimestamp: 0,
-            directPath: "",
-            fileLength: "0",
+            directPath: directPath,
+            fileLength: fileLength.toString(),
           },
         },
       },
