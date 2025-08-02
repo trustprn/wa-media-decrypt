@@ -7,12 +7,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url, mediaKey, mimetype, directPath, fileLength } = req.body;
+    const { url, mediaKey, mimetype, fileLength, directPath } = req.body;
+
+    // LOG DEBUG (sementara aktifkan ini kalau butuh lihat detail)
+    console.log("Decrypt request body:", req.body);
+
+    const mediaBuffer = (await axios.get(url, { responseType: "arraybuffer" }))
+      .data;
 
     const decrypted = await downloadMediaMessage(
       {
         key: {
-          remoteJid: "dummy@dummy",
+          remoteJid: "dummy@dummy", // placeholder, nggak berpengaruh
           fromMe: false,
           id: "dummy",
         },
@@ -21,28 +27,26 @@ export default async function handler(req, res) {
             url,
             mimetype,
             mediaKey: Buffer.from(mediaKey, "base64"),
-            fileEncSha256: Buffer.alloc(32), // optional
-            fileSha256: Buffer.alloc(32), // optional
+            fileEncSha256: Buffer.alloc(32),
+            fileSha256: Buffer.alloc(32),
             mediaKeyTimestamp: 0,
-            directPath, // ✅ isi sesuai body
-            fileLength: Number(fileLength), // ✅ pastikan ini number
+            directPath,
+            fileLength: Number(fileLength), // harus string
           },
         },
       },
-      {},
+      {}, // baileys client (kosong karena kita cuma pakai tool decrypt-nya)
       { reuploadRequest: async () => null }
     );
 
-    // Dapatkan ekstensi dari mimetype
-    const extension = mimetype.split("/")[1]; // 'jpeg', 'png', dll
-    const filename = `media-${Date.now()}.${extension}`;
+    const ext = mimetype?.split("/")[1] || "bin";
+    const fileName = `whatsapp-media.${ext}`;
 
-    // Tambahkan header untuk menentukan nama file
     res.setHeader("Content-Type", mimetype);
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     return res.status(200).end(decrypted);
   } catch (err) {
-    console.error("DECRYPT ERROR:", err);
+    console.error("❌ Failed to decrypt:", err);
     return res.status(500).json({ error: "Failed to decrypt" });
   }
 }
