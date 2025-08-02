@@ -33,7 +33,13 @@ export default async function handler(req, res) {
       { reuploadRequest: async () => null }
     );
 
+    // Dapatkan ekstensi dari mimetype
+    const extension = mimetype.split("/")[1]; // 'jpeg', 'png', dll
+    const filename = `media-${Date.now()}.${extension}`;
+
+    // Tambahkan header untuk menentukan nama file
     res.setHeader("Content-Type", mimetype);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     return res.status(200).end(decrypted);
   } catch (err) {
     console.error("DECRYPT ERROR:", err);
