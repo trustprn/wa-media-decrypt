@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     );
 
     res.setHeader("Content-Type", mimetype);
-    return res.status(200).send(decrypted);
+    return res.status(200).end(decrypted);
   } catch (err) {
     console.error("DECRYPT ERROR:", err);
     return res.status(500).json({ error: "Failed to decrypt" });
